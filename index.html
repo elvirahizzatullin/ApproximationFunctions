@@ -1,142 +1,93 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="uk">
+
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Лабораторна робота №4</title>
-
-    <link rel="stylesheet" href="style.css"/>
-
-    <script src="app.js" defer></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Лабораторна робота №4</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="app.js" defer></script>
 </head>
+
 <body>
-
-<div class="container">
-
-    <!-- HEADER -->
+  <div class="container">
     <header class="header">
-        <div>
-            <h1>Інтерполяція Лагранжа та МНК-апроксимація</h1>
-        </div>
-
-       
-    </header>
-
-    <!-- CONTROL PANEL -->
+      <div>
+        <h1>Інтерполяція Лагранжа та МНК-апроксимація</h1>
+      </div>
+    </header> 
+    
     <section class="controls">
-
-      
-        <div class="control-box">
-            <label>Кількість точок</label>
-
-            <div class="button-group">
-                <button class="active">5 точок</button>
-                <button>10 точок</button>
-                <button>20 точок</button>
-            </div>
+      <div class="control-box"> <label>Кількість точок</label>
+        <div class="button-group" id="pointCountBtns"> <button type="button" data-count="5">5 точок</button> <button
+            type="button" data-count="10">10 точок</button> <button type="button" data-count="20">20 точок</button>
+          <button type="button" data-count="custom">Свої точки</button> </div>
+      </div>
+      <div class="control-box"> <label>Тип графіка</label>
+        <div class="button-group" id="chartMode"> <button type="button" class="active" data-mode="all">Усі</button>
+          <button type="button" data-mode="lagrange">Лагранж</button> <button type="button" data-mode="mnk">МНК</button>
         </div>
-
-        <div class="control-box">
-            <label>Тип графіка</label>
-
-            <div class="button-group">
-                <button class="active">Усі</button>
-                <button>Лагранж</button>
-                <button>МНК</button>
-            </div>
-        </div>
-
-        <div class="control-box">
-            <label>Ступінь МНК</label>
-
-            <select id="mnkDegree">
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-            </select>
-        </div>
-
+      </div>
+      <div class="control-box" id="mnkDegreeBox"> <label>Ступінь МНК</label> <select id="mnkDegree">
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select> </div>
     </section>
-    <!-- ДОДАЙ ЦЕ ПІСЛЯ <section class="controls"> -->
 
-<section class="points-section">
-
-    <div class="points-card">
-
+    <section class="points-section hidden" id="pointsSection">
+      <div class="points-card">
         <div class="points-header">
-            <h2>Введення точок</h2>
+          <h2>Введення точок</h2>
         </div>
-
-        <p class="points-description">
-            Вводьте точки у форматі:
-            (2, 4.2), (3, 5.1), (4, 5.9)
-        </p>
-
-        <textarea
-            id="pointsInput"
-            placeholder="(2, 4.2), (3, 5.1), (4, 5.9), (5, 7.2), (6, 8.5)"
-        >(2, 4.2), (3, 5.1), (4, 5.9), (5, 7.2), (6, 8.5)</textarea>
-
+        <p class="points-description"> Вводьте точки у форматі: (2, 4.2), (3, 5.1), (4, 5.9) </p> <textarea
+          id="pointsInput" placeholder="(2, 4.2), (3, 5.1), (4, 5.9)"></textarea>
         <div class="points-info">
-
-            <div class="mini-info">
-                <p id="pointsCount">Точок: 5</p>
-            </div>
-
+          <div class="mini-info">
+            <p id="pointsCount">Точок: 0</p>
+          </div>
         </div>
-        
-    </div>
-</section>
+      </div>
+    </section>
 
-
-<div class="boxBtn">
-  <button class="theme-btn" id="calcBtn" type="button">
-            Обчислити
-        </button>
-</div>
-
-<section class="results-section">
-    <div class="results-card">
+    <section class="results-section hidden" id="resultsSection">
+      <div class="results-card lagrange-block">
         <h2>Таблиця поділених різниць</h2>
         <div id="dividedDiffTable" class="table-wrap"></div>
-    </div>
-
-    <div class="results-card">
+      </div>
+      <div class="results-card lagrange-block">
         <h2>Поліном Лагранжа</h2>
         <p id="lagrangeFormula" class="formula-text"></p>
-    </div>
-
-    <div class="results-card wide">
+      </div>
+      <div class="results-card wide mnk-block">
         <h2>МНК — дизайн-матриця (m = <span id="mnkDegLabel">2</span>)</h2>
         <div id="designMatrix" class="table-wrap"></div>
-    </div>
-
-    <div class="results-card">
+      </div>
+      <div class="results-card mnk-block">
         <h2>МНК — коефіцієнти (QR, без нормальних рівнянь)</h2>
         <p id="mnkCoefs" class="formula-text"></p>
         <p id="mnkPoly" class="formula-text"></p>
-    </div>
-
-    <div class="results-card wide">
+      </div>
+      <div class="results-card wide mnk-block">
         <h2>МНК — ŷ та залишки</h2>
         <div id="mnkResiduals" class="table-wrap"></div>
-    </div>
-</section>
-
-    <!-- CHARTS -->
-    <section class="charts-section">
-
-        <div class="chart-card">
-            <div class="chart-header">
-                <h2></h2>
-            </div>
-
-            <canvas id="chart1"></canvas>
-        </div>
+      </div>
     </section>
-
-</div>
-
+    
+    <section class="charts-section hidden" id="chartsSection">
+      <div class="chart-card wide">
+        <div class="chart-header">
+          <h2>Графік</h2>
+        </div> <canvas id="mainChart"></canvas>
+      </div>
+      <div class="chart-card wide mnk-block" id="residualChartCard">
+        <div class="chart-header">
+          <h2>Діаграма залишків (МНК)</h2>
+        </div> <canvas id="residualChart"></canvas>
+      </div>
+    </section>
+  </div>
+  <div id="chartTooltip" class="chart-tooltip"></div>
 </body>
+
 </html>
