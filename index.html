@@ -1,0 +1,160 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Лабораторна робота №4</title>
+
+    <link rel="stylesheet" href="style.css"/>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+    <header class="header">
+        <div>
+            <h1>Інтерполяція Лагранжа та МНК-апроксимація</h1>
+        </div>
+
+       
+    </header>
+
+    <!-- CONTROL PANEL -->
+    <section class="controls">
+
+      
+        <div class="control-box">
+            <label>Кількість точок</label>
+
+            <div class="button-group">
+                <button class="active">5 точок</button>
+                <button>10 точок</button>
+                <button>20 точок</button>
+            </div>
+        </div>
+
+        <div class="control-box">
+            <label>Тип графіка</label>
+
+            <div class="button-group">
+                <button class="active">Усі</button>
+                <button>Лагранж</button>
+                <button>МНК</button>
+            </div>
+        </div>
+
+        <div class="control-box">
+            <label>Ступінь МНК</label>
+
+            <select>
+                <option>2</option>
+                <option>3</option>
+                <option>4</option>
+            </select>
+        </div>
+
+    </section>
+    <!-- ДОДАЙ ЦЕ ПІСЛЯ <section class="controls"> -->
+
+<section class="points-section">
+
+    <div class="points-card">
+
+        <div class="points-header">
+            <h2>Введення точок</h2>
+        </div>
+
+        <p class="points-description">
+            Вводьте точки у форматі:
+            (2, 4.2), (3, 5.1), (4, 5.9)
+        </p>
+
+        <textarea
+            placeholder="(2, 4.2), (3, 5.1), (4, 5.9), (5, 7.2), (6, 8.5)"
+        >(2, 4.2), (3, 5.1), (4, 5.9), (5, 7.2), (6, 8.5)</textarea>
+
+        <div class="points-info">
+
+            <div class="mini-info">
+                <p>Точок: 5</p>
+            </div>
+
+        </div>
+        
+    </div>
+</section>
+
+
+<div class="boxBtn">
+  <button class="theme-btn">
+            Запустити анімацію
+        </button>
+</div>
+
+    <!-- CHARTS -->
+    <section class="charts-section">
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h2>Лагранж — 5 точок</h2>
+                <span class="badge lagrange">L</span>
+            </div>
+
+            <canvas id="chart1"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h2>Лагранж — 10 точок</h2>
+                <span class="badge lagrange">L</span>
+            </div>
+
+            <canvas id="chart2"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h2>Лагранж — 20 точок</h2>
+                <span class="badge lagrange">L</span>
+            </div>
+
+            <canvas id="chart3"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h2>МНК — 5 точок</h2>
+                <span class="badge mnk">M</span>
+            </div>
+
+            <canvas id="chart4"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h2>МНК — 10 точок</h2>
+                <span class="badge mnk">M</span>
+            </div>
+
+            <canvas id="chart5"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <div class="chart-header">
+                <h2>МНК — 20 точок</h2>
+                <span class="badge mnk">M</span>
+            </div>
+
+            <canvas id="chart6"></canvas>
+        </div>
+
+    </section>
+
+</div>
+
+</body>
+</html>
