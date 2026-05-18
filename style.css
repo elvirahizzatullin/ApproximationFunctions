@@ -417,3 +417,7 @@ textarea:focus{
     font-size:15px;
     word-break:break-word;
 }
+
+.results-card.wide{
+    grid-column:1 / -1;
+}

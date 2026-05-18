@@ -50,10 +50,10 @@
         <div class="control-box">
             <label>Ступінь МНК</label>
 
-            <select>
-                <option>2</option>
-                <option>3</option>
-                <option>4</option>
+            <select id="mnkDegree">
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
             </select>
         </div>
 
@@ -92,7 +92,7 @@
 
 <div class="boxBtn">
   <button class="theme-btn" id="calcBtn" type="button">
-            Обчислити Лагранжа
+            Обчислити
         </button>
 </div>
 
@@ -106,6 +106,22 @@
         <h2>Поліном Лагранжа</h2>
         <p id="lagrangeFormula" class="formula-text"></p>
     </div>
+
+    <div class="results-card wide">
+        <h2>МНК — дизайн-матриця (m = <span id="mnkDegLabel">2</span>)</h2>
+        <div id="designMatrix" class="table-wrap"></div>
+    </div>
+
+    <div class="results-card">
+        <h2>МНК — коефіцієнти (QR, без нормальних рівнянь)</h2>
+        <p id="mnkCoefs" class="formula-text"></p>
+        <p id="mnkPoly" class="formula-text"></p>
+    </div>
+
+    <div class="results-card wide">
+        <h2>МНК — ŷ та залишки</h2>
+        <div id="mnkResiduals" class="table-wrap"></div>
+    </div>
 </section>
 
     <!-- CHARTS -->
@@ -113,58 +129,11 @@
 
         <div class="chart-card">
             <div class="chart-header">
-                <h2>Лагранж — 5 точок</h2>
-                <span class="badge lagrange">L</span>
+                <h2></h2>
             </div>
 
             <canvas id="chart1"></canvas>
         </div>
-
-        <div class="chart-card">
-            <div class="chart-header">
-                <h2>Лагранж — 10 точок</h2>
-                <span class="badge lagrange">L</span>
-            </div>
-
-            <canvas id="chart2"></canvas>
-        </div>
-
-        <div class="chart-card">
-            <div class="chart-header">
-                <h2>Лагранж — 20 точок</h2>
-                <span class="badge lagrange">L</span>
-            </div>
-
-            <canvas id="chart3"></canvas>
-        </div>
-
-        <div class="chart-card">
-            <div class="chart-header">
-                <h2>МНК — 5 точок</h2>
-                <span class="badge mnk">M</span>
-            </div>
-
-            <canvas id="chart4"></canvas>
-        </div>
-
-        <div class="chart-card">
-            <div class="chart-header">
-                <h2>МНК — 10 точок</h2>
-                <span class="badge mnk">M</span>
-            </div>
-
-            <canvas id="chart5"></canvas>
-        </div>
-
-        <div class="chart-card">
-            <div class="chart-header">
-                <h2>МНК — 20 точок</h2>
-                <span class="badge mnk">M</span>
-            </div>
-
-            <canvas id="chart6"></canvas>
-        </div>
-
     </section>
 
 </div>
