@@ -8,7 +8,7 @@
 
     <link rel="stylesheet" href="style.css"/>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js" defer></script>
 </head>
 <body>
 
@@ -74,13 +74,14 @@
         </p>
 
         <textarea
+            id="pointsInput"
             placeholder="(2, 4.2), (3, 5.1), (4, 5.9), (5, 7.2), (6, 8.5)"
         >(2, 4.2), (3, 5.1), (4, 5.9), (5, 7.2), (6, 8.5)</textarea>
 
         <div class="points-info">
 
             <div class="mini-info">
-                <p>Точок: 5</p>
+                <p id="pointsCount">Точок: 5</p>
             </div>
 
         </div>
@@ -90,10 +91,22 @@
 
 
 <div class="boxBtn">
-  <button class="theme-btn">
-            Запустити анімацію
+  <button class="theme-btn" id="calcBtn" type="button">
+            Обчислити Лагранжа
         </button>
 </div>
+
+<section class="results-section">
+    <div class="results-card">
+        <h2>Таблиця поділених різниць</h2>
+        <div id="dividedDiffTable" class="table-wrap"></div>
+    </div>
+
+    <div class="results-card">
+        <h2>Поліном Лагранжа</h2>
+        <p id="lagrangeFormula" class="formula-text"></p>
+    </div>
+</section>
 
     <!-- CHARTS -->
     <section class="charts-section">
