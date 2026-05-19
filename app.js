@@ -3,11 +3,17 @@ let pointsReady = false;
 let presetText = "";
 let isCustomPoints = false;
 
+let animProgress = 1;  
+let residProgress = 1;    
+let animFrame = null;   
+
 const PRESETS = {
     5: "(2, 4.2), (3, 5.1), (4, 5.9), (5, 7.2), (6, 8.5)",
     10: "(0, 2), (1, 2.5), (2, 3.2), (3, 4.1), (4, 5.3), (5, 6.8), (6, 8.5), (7, 10.5), (8, 12.5), (9, 14.0)",
     20: "(1, 1.0), (1.2, 1.5), (1.4, 2.1), (1.6, 2.8), (1.8, 3.5), (2.0, 4.2), (2.2, 5.1), (2.4, 6.2), (2.6, 7.3), (2.8, 8.5), (3.0, 9.8), (3.2, 11.2), (3.4, 12.8), (3.6, 14.5), (3.8, 16.3), (4.0, 18.2), (4.2, 20.2), (4.4, 22.4), (4.6, 24.7), (4.8, 27.1)"
 };
+
+function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
 
 function parsePoints(text) {
     const points = [];
@@ -195,7 +201,65 @@ function toPx(x, y, box, w, h, pad) {
     return [px, py];
 }
 
+function drawGrid(ctx, box, w, h, pad) {
+    ctx.strokeStyle = "#1e293b";
+    ctx.lineWidth = 1;
+    ctx.font = "11px Arial";
+    ctx.fillStyle = "#64748b";
+
+    const xSteps = 8;
+    const ySteps = 6;
+
+    for (let i = 0; i <= xSteps; i++) {
+        const x = box.xMin + ((box.xMax - box.xMin) * i) / xSteps;
+        const [px, py1] = toPx(x, box.yMin, box, w, h, pad);
+        const [, py2] = toPx(x, box.yMax, box, w, h, pad);
+
+        ctx.beginPath();
+        ctx.moveTo(px, py1);
+        ctx.lineTo(px, py2);
+        ctx.stroke();
+
+        ctx.fillText(x.toFixed(1), px - 10, h - pad + 15);
+    }
+
+    for (let i = 0; i <= ySteps; i++) {
+        const y = box.yMin + ((box.yMax - box.yMin) * i) / ySteps;
+        const [px1, py] = toPx(box.xMin, y, box, w, h, pad);
+        const [px2] = toPx(box.xMax, y, box, w, h, pad);
+
+        ctx.beginPath();
+        ctx.moveTo(px1, py);
+        ctx.lineTo(px2, py);
+        ctx.stroke();
+
+        ctx.fillText(y.toFixed(1), pad - 35, py + 4);
+    }
+
+    ctx.strokeStyle = "#475569";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const [x1, y0] = toPx(box.xMin, 0, box, w, h, pad);
+    const [x2] = toPx(box.xMax, 0, box, w, h, pad);
+    ctx.moveTo(x1, y0);
+    ctx.lineTo(x2, y0);
+    ctx.stroke();
+
+    const [x0, y1] = toPx(0, box.yMin, box, w, h, pad);
+    const [, y2] = toPx(0, box.yMax, box, w, h, pad);
+    ctx.beginPath();
+    ctx.moveTo(x0, y1);
+    ctx.lineTo(x0, y2);
+    ctx.stroke();
+
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "13px Arial";
+    ctx.fillText("X", w - pad + 10, y0 + 4);
+    ctx.fillText("Y", x0 - 10, pad - 10);
+}
+
 function getMainBox(points, coefs) {
+    const mode = getMode();
     const xs = points.map((p) => p.x);
     const ys = points.map((p) => p.y);
     let xMin = Math.min(...xs);
@@ -204,32 +268,49 @@ function getMainBox(points, coefs) {
     xMin -= dx;
     xMax += dx;
 
-    let yMin = Math.min(...ys);
-    let yMax = Math.max(...ys);
+    const dataYMin = Math.min(...ys);
+    const dataYMax = Math.max(...ys);
+    const dataRange = (dataYMax - dataYMin) || 1;
+    const clampLo = dataYMin - dataRange * 3;
+    const clampHi = dataYMax + dataRange * 3;
+
+    let yMin = dataYMin;
+    let yMax = dataYMax;
 
     for (let k = 0; k <= 60; k++) {
         const x = xMin + ((xMax - xMin) * k) / 60;
-        yMin = Math.min(yMin, lagrangeAt(xs, ys, x));
-        yMax = Math.max(yMax, lagrangeAt(xs, ys, x));
-        if (coefs) {
+        if (mode === "all" || mode === "lagrange") {
+            const yL = lagrangeAt(xs, ys, x);
+            if (isFinite(yL) && yL >= clampLo && yL <= clampHi) {
+                yMin = Math.min(yMin, yL);
+                yMax = Math.max(yMax, yL);
+            }
+        }
+        if ((mode === "all" || mode === "mnk") && coefs) {
             const y = polyValue(coefs, x);
-            yMin = Math.min(yMin, y);
-            yMax = Math.max(yMax, y);
+            if (isFinite(y) && y >= clampLo && y <= clampHi) {
+                yMin = Math.min(yMin, y);
+                yMax = Math.max(yMax, y);
+            }
         }
     }
 
-    const dy = (yMax - yMin) * 0.1 || 1;
+    const dy = (yMax - yMin) * 0.12 || 1;
     return { xMin, xMax, yMin: yMin - dy, yMax: yMax + dy, xs, ys };
 }
 
-function drawLine(ctx, color, fn, box, w, h, pad) {
+function drawLine(ctx, color, fn, box, w, h, pad, progress = 1, fromY = null) {
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.setLineDash([]);
     ctx.beginPath();
-    for (let k = 0; k <= 80; k++) {
-        const x = box.xMin + ((box.xMax - box.xMin) * k) / 80;
-        const [px, py] = toPx(x, fn(x), box, w, h, pad);
+    const steps = 100;
+    const limit = Math.round(steps * progress);
+    for (let k = 0; k <= limit; k++) {
+        const x = box.xMin + ((box.xMax - box.xMin) * k) / steps;
+        const finalY = fn(x);
+        const y = fromY !== null ? fromY + (finalY - fromY) * progress : finalY;
+        const [px, py] = toPx(x, y, box, w, h, pad);
         if (k === 0) ctx.moveTo(px, py);
         else ctx.lineTo(px, py);
     }
@@ -243,7 +324,7 @@ function drawMainChart() {
     const ctx = canvas.getContext("2d");
     const w = (canvas.width = canvas.clientWidth);
     const h = (canvas.height = canvas.clientHeight);
-    const pad = 45;
+    const pad = 60;
 
     ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = "#0f172a";
@@ -255,46 +336,77 @@ function drawMainChart() {
     const { points, coefs } = chartData;
     const box = getMainBox(points, coefs);
 
-    ctx.strokeStyle = "#475569";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    const [, y0] = toPx(0, 0, box, w, h, pad);
-    ctx.moveTo(pad, y0);
-    ctx.lineTo(w - pad, y0);
-    ctx.stroke();
+    drawGrid(ctx, box, w, h, pad);
 
     if (mode === "all" || mode === "lagrange") {
-        drawLine(ctx, "#3b82f6", (x) => lagrangeAt(box.xs, box.ys, x), box, w, h, pad);
+        drawLine(ctx, "#3b82f6", (x) => lagrangeAt(box.xs, box.ys, x), box, w, h, pad, animProgress);
     }
     if ((mode === "all" || mode === "mnk") && coefs) {
-        drawLine(ctx, "#10b981", (x) => polyValue(coefs, x), box, w, h, pad);
+        const yMean = points.reduce((s, p) => s + p.y, 0) / points.length;
+        drawLine(ctx, "#10b981", (x) => polyValue(coefs, x), box, w, h, pad, animProgress, yMean);
     }
 
     chartData.screenPoints = [];
 
     for (const p of points) {
         const [px, py] = toPx(p.x, p.y, box, w, h, pad);
-        chartData.screenPoints.push({ x: p.x, y: p.y, px, py });
+        const yHat = coefs ? polyValue(coefs, p.x) : null;
+        const error = coefs ? p.y - yHat : null;
+        chartData.screenPoints.push({ x: p.x, y: p.y, px, py, yHat, error });
+
         ctx.fillStyle = "#f8fafc";
+        ctx.strokeStyle = "#1e293b";
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(px, py, 5, 0, Math.PI * 2);
+        ctx.arc(px, py, 6, 0, Math.PI * 2);
         ctx.fill();
+        ctx.stroke();
     }
 
-    ctx.font = "13px Arial";
-    let lx = pad;
+    if ((mode === "all" || mode === "mnk") && coefs && residProgress > 0) {
+        const numToShow = Math.floor(points.length * residProgress);
+        for (let i = 0; i < numToShow; i++) {
+            const p = points[i];
+            const yHat = polyValue(coefs, p.x);
+            const [px1, py1] = toPx(p.x, yHat, box, w, h, pad);
+            const [px2, py2] = toPx(p.x, p.y, box, w, h, pad);
+
+            ctx.strokeStyle = "#f59e0b";
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 3]);
+            ctx.beginPath();
+            ctx.moveTo(px1, py1);
+            ctx.lineTo(px2, py2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+    }
+
+    ctx.font = "14px Arial";
+    ctx.fillStyle = "#1e293b";
+    ctx.fillRect(pad, 10, 300, 30);
+
+    let lx = pad + 10;
     if (mode === "all" || mode === "lagrange") {
         ctx.fillStyle = "#3b82f6";
-        ctx.fillText("Лагранж", lx, 20);
-        lx += 75;
+        ctx.fillRect(lx, 15, 20, 20);
+        ctx.fillStyle = "#e2e8f0";
+        ctx.fillText("Лагранж", lx + 28, 30);
+        lx += 100;
     }
     if ((mode === "all" || mode === "mnk") && coefs) {
         ctx.fillStyle = "#10b981";
-        ctx.fillText("МНК", lx, 20);
-        lx += 50;
+        ctx.fillRect(lx, 15, 20, 20);
+        ctx.fillStyle = "#e2e8f0";
+        ctx.fillText("МНК", lx + 28, 30);
+        lx += 60;
     }
     ctx.fillStyle = "#f8fafc";
-    ctx.fillText("точки", lx, 20);
+    ctx.beginPath();
+    ctx.arc(lx + 10, 25, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#e2e8f0";
+    ctx.fillText("Точки даних", lx + 22, 30);
 }
 
 function drawResidualChart() {
@@ -402,9 +514,14 @@ function getPointsText() {
     return presetText;
 }
 
-function showWorkArea() {
+function showWorkArea(callback) {
     document.getElementById("resultsSection").classList.remove("hidden");
     document.getElementById("chartsSection").classList.remove("hidden");
+    if (callback) {
+        requestAnimationFrame(function () {
+            requestAnimationFrame(callback);
+        });
+    }
 }
 
 function selectPreset(count) {
@@ -415,11 +532,16 @@ function selectPreset(count) {
         b.classList.toggle("active", b.dataset.count === String(count));
     });
 
+    const infoEl = document.getElementById("presetPointsInfo");
+    if (infoEl) {
+        infoEl.textContent = "Точки (набір " + count + "): " + PRESETS[count];
+        infoEl.classList.remove("hidden");
+    }
+
     document.getElementById("pointsSection").classList.add("hidden");
     pointsReady = true;
-    showWorkArea();
     updateVisibility();
-    calculate();
+    showWorkArea(calculate);
 }
 
 function selectCustomPoints() {
@@ -430,17 +552,66 @@ function selectCustomPoints() {
         b.classList.toggle("active", b.dataset.count === "custom");
     });
 
+    const infoEl = document.getElementById("presetPointsInfo");
+    if (infoEl) infoEl.classList.add("hidden");
+
     document.getElementById("pointsInput").value = "";
     document.getElementById("pointsCount").textContent = "Точок: 0";
     document.getElementById("pointsSection").classList.remove("hidden");
-    pointsReady = true;
-    showWorkArea();
+    pointsReady = false;
     updateVisibility();
-    calculate();
 }
+
+function setReplayBtn(visible, busy) {
+    const btn = document.getElementById("replayBtn");
+    if (!btn) return;
+    btn.classList.toggle("hidden", !visible);
+    btn.classList.toggle("animating", busy);
+    btn.disabled = busy;
+    btn.textContent = busy ? "\u23F3 Анімація..." : "\u25B6 Запустити анімацію";
+}
+
+function startAnimation() {
+    if (animFrame) cancelAnimationFrame(animFrame);
+
+    animProgress = 0;
+    residProgress = 0;
+    setReplayBtn(true, true);
+
+    const CURVE_MS = 2000; 
+    const RESID_MS = 1500;   
+    const start = Date.now();
+
+    function tick() {
+        const t = Date.now() - start;
+
+        animProgress = easeOut(Math.min(1, t / CURVE_MS));
+        residProgress = t > CURVE_MS ? easeOut(Math.min(1, (t - CURVE_MS) / RESID_MS)) : 0;
+
+        drawCharts();
+
+        if (t < CURVE_MS + RESID_MS) {
+            animFrame = requestAnimationFrame(tick);
+        } else {
+            animProgress = 1;
+            residProgress = 1;
+            animFrame = null;
+            drawCharts();
+            setReplayBtn(true, false);
+        }
+    }
+
+    animFrame = requestAnimationFrame(tick);
+}
+
 
 function calculate() {
     if (!pointsReady) return;
+    const chartsEl = document.getElementById("chartsSection");
+    if (chartsEl.classList.contains("hidden")) {
+        showWorkArea(calculate);
+        return;
+    }
 
     const mode = getMode();
     const points = parsePoints(getPointsText());
@@ -492,7 +663,20 @@ function calculate() {
     }
 
     chartData = { points, coefs, screenPoints: [] };
-    drawCharts();
+
+    if (points.length >= 2) {
+        startAnimation();
+    } else {
+        setReplayBtn(false, false);
+        drawCharts();
+    }
+}
+
+function clearMnk(msg) {
+    document.getElementById("designMatrix").innerHTML = "";
+    document.getElementById("mnkCoefs").textContent = msg || "";
+    document.getElementById("mnkPoly").textContent = "";
+    document.getElementById("mnkResiduals").innerHTML = "";
 }
 
 function onChartHover(e) {
@@ -513,9 +697,14 @@ function onChartHover(e) {
 
     if (hit) {
         tip.style.display = "block";
-        tip.textContent = "(" + (+hit.x.toFixed(2)) + ", " + (+hit.y.toFixed(2)) + ")";
-        tip.style.left = e.clientX + 12 + "px";
-        tip.style.top = e.clientY - 28 + "px";
+        let text = "x: " + (+hit.x.toFixed(3)) + ", y: " + (+hit.y.toFixed(3));
+        if (hit.error !== null && hit.error !== undefined) {
+            text += "\nŷ: " + (+hit.yHat.toFixed(3));
+            text += "\nПохибка: " + (+hit.error.toFixed(4));
+        }
+        tip.textContent = text;
+        tip.style.left = e.clientX + 15 + "px";
+        tip.style.top = e.clientY - 35 + "px";
     } else {
         tip.style.display = "none";
     }
@@ -533,7 +722,16 @@ document.getElementById("pointCountBtns").addEventListener("click", function (e)
 document.getElementById("mnkDegree").addEventListener("change", calculate);
 
 document.getElementById("pointsInput").addEventListener("input", function () {
-    if (isCustomPoints) calculate();
+    if (isCustomPoints) {
+        const pts = parsePoints(this.value);
+        document.getElementById("pointsCount").textContent = "Точок: " + pts.length;
+    }
+});
+
+document.getElementById("calcBtn").addEventListener("click", function () {
+    pointsReady = true;
+    updateVisibility();
+    showWorkArea(calculate);
 });
 
 document.getElementById("chartMode").addEventListener("click", function (e) {
@@ -547,6 +745,10 @@ document.getElementById("chartMode").addEventListener("click", function (e) {
 document.getElementById("mainChart").addEventListener("mousemove", onChartHover);
 document.getElementById("mainChart").addEventListener("mouseleave", function () {
     document.getElementById("chartTooltip").style.display = "none";
+});
+
+document.getElementById("replayBtn").addEventListener("click", function () {
+    if (!animFrame && chartData) startAnimation();
 });
 
 window.addEventListener("resize", drawCharts);
